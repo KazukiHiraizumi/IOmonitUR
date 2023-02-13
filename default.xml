@@ -1,0 +1,61 @@
+<?xml version="1.0"?>
+<rtde_config>
+	<recipe key="state">
+		<field name="robot_mode" type="INT32"/>
+		<field name="runtime_state" type="UINT32"/>
+		<field name="actual_q" type="VECTOR6D"/>
+		<field name="target_q" type="VECTOR6D"/>
+		<field name="output_int_register_0" type="INT32"/>
+		<field name="output_int_register_1" type="INT32"/>
+		<field name="output_int_register_2" type="INT32"/>
+		<field name="output_int_register_3" type="INT32"/>
+		<field name="output_int_register_4" type="INT32"/>
+		<field name="output_int_register_5" type="INT32"/>
+		<field name="output_int_register_6" type="INT32"/>
+		<field name="output_int_register_7" type="INT32"/>
+		<field name="output_int_register_8" type="INT32"/>
+		<field name="output_int_register_9" type="INT32"/>
+		<field name="output_int_register_10" type="INT32"/>
+		<field name="output_int_register_11" type="INT32"/>
+		<field name="output_int_register_12" type="INT32"/>
+		<field name="output_int_register_13" type="INT32"/>
+		<field name="output_int_register_14" type="INT32"/>
+		<field name="output_int_register_15" type="INT32"/>
+		<field name="output_int_register_16" type="INT32"/>
+		<field name="output_int_register_17" type="INT32"/>
+		<field name="output_int_register_18" type="INT32"/>
+		<field name="output_int_register_19" type="INT32"/>
+		<field name="output_int_register_20" type="INT32"/>
+		<field name="output_int_register_21" type="INT32"/>
+		<field name="output_int_register_22" type="INT32"/>
+		<field name="output_int_register_23" type="INT32"/>
+		<field name="output_bit_registers0_to_31" type="UINT32"/>
+	</recipe>
+	<recipe key="input">
+		<field name="input_int_register_0" type="INT32"/>
+		<field name="input_int_register_1" type="INT32"/>
+		<field name="input_int_register_2" type="INT32"/>
+		<field name="input_int_register_3" type="INT32"/>
+		<field name="input_int_register_4" type="INT32"/>
+		<field name="input_int_register_5" type="INT32"/>
+		<field name="input_int_register_6" type="INT32"/>
+		<field name="input_int_register_7" type="INT32"/>
+		<field name="input_int_register_8" type="INT32"/>
+		<field name="input_int_register_9" type="INT32"/>
+		<field name="input_int_register_10" type="INT32"/>
+		<field name="input_int_register_11" type="INT32"/>
+		<field name="input_int_register_12" type="INT32"/>
+		<field name="input_int_register_13" type="INT32"/>
+		<field name="input_int_register_14" type="INT32"/>
+		<field name="input_int_register_15" type="INT32"/>
+		<field name="input_int_register_16" type="INT32"/>
+		<field name="input_int_register_17" type="INT32"/>
+		<field name="input_int_register_18" type="INT32"/>
+		<field name="input_int_register_19" type="INT32"/>
+		<field name="input_int_register_20" type="INT32"/>
+		<field name="input_int_register_21" type="INT32"/>
+		<field name="input_int_register_22" type="INT32"/>
+		<field name="input_int_register_23" type="INT32"/>
+		<field name="input_bit_registers0_to_31" type="UINT32"/>
+	</recipe>
+</rtde_config>
