@@ -19,14 +19,14 @@ def connect(host,port,xml):
   try:
     con = rtde.RTDE(host,port)
     con.connect()
-    print("connected")
+    print("connect...pass")
 
     con.get_controller_version()
-    print("get version done")
+    print("get version...pass")
 
     con.send_output_setup(state_names, state_types)
     inregs = con.send_input_setup(inregs_names, inregs_types)
-    print("setup done")
+    print("setup...pass")
   except Exception as e:
     print(e)
     return False
@@ -35,7 +35,7 @@ def connect(host,port,xml):
 
 def start():   # start data synchronization
   if not con.send_start():
-    print('send start failed')
+    print('send_start...failed')
     return False
   else:
     return True

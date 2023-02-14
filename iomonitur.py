@@ -4,53 +4,40 @@ import PySimpleGUI as sg
 import sys
 sys.path.append('.')
 
-ids=[
+### Outlooking #####################
+import layout_simple as layout
+elements=[
   '0','1','2','3','4','5','6','7','8','9',
   '10','11','12','13','14','15','16','17','18','19',
-  '20','21','22','23','24','25','26','27','28','29'
+  '20','21','22','23','24','25','26','27','28','29',
+  '30','31','32','33','34','35','36','37','38','39',
+  '40','41','42','43','44','45','46','47'
 ]
-### Layout #####################
-sg.theme('Dark Blue 3')
-layout=[[
-  sg.Text('Adds',size=(4,1)),
-  sg.Text('Input',size=(10,1)),
-  sg.Text('Output',size=(10,1)),
-  sg.Text('X',size=(3,1)),
-  sg.Text('Y',size=(3,1))
-]]
+layout.build(elements)
+window = sg.Window('I/O Monitor for UR', layout.layout,finalize=True)
 
-for k in ids[:24]:   #Put widgets every one line
-  ln=[
-    sg.Text(k,size=(4,1)),
-    sg.Input(key='-i'+k,size=(10,1)),
-    sg.Input(key='-o'+k,size=(10,1),readonly=True),
-    sg.Checkbox('',key='-x'+k),
-    sg.Text('',key='-y'+k,size=(2,1),relief=sg.RELIEF_RIDGE,border_width=2,background_color='black')
-  ]
-  layout.append(ln)
-
-# Put status widgets
-layout.append([sg.Text('Robot mode',size=(12,1)),sg.Input(key='robot_mode',size=(10,1),readonly=True)])
-
-### Render window #####################
-window = sg.Window('I/O Monitor for UR', layout,finalize=True)
-for k in ids[:24]:
-  window['-i'+k].bind('<Return>', '')   #add event to the widget whose key is '-i*'
-for k in ids[:24]:
-  window['-x'+k].bind('<ButtonPress-1>', '')   #add event to the widget whose key is '-x*'
+for k in elements:
+  if '-i'+k in window.AllKeysDict:
+    window['-i'+k].bind('<Return>', '')   #attach event to the widget whose key is '-i*'
+for k in elements:
+  if '-x'+k in window.AllKeysDict:
+    window['-x'+k].bind('<ButtonPress-1>', '')   #attach event to the widget whose key is '-x*'
 
 ###Start RTDE comminucation################
 import comm
 IPADDS="127.0.0.1"
 PORT=30004
+RECIPE="minimum.xml"
 
-if not comm.connect(IPADDS,PORT,"default.xml"):
+if not comm.connect(IPADDS,PORT,RECIPE):
   print("comm connect falied")
   sys.exit()
 
-for k in ids[:24]:
-  exec('comm.inregs.input_int_register_'+k+'=0')    #Init inregs(input registers)
-  window['-i'+k].update(eval('comm.inregs.input_int_register_'+k))   #at the same time corresponding widget
+#Init inregs(input registers)
+for k in elements:
+  if '-i'+k in window.AllKeysDict:
+    exec('comm.inregs.input_int_register_'+k+'=0')   #init int register
+    window['-i'+k].update(eval('comm.inregs.input_int_register_'+k))   #ant its corresponding widget
 comm.inregs.input_bit_registers0_to_31 = 0
 
 if not comm.start():
@@ -67,6 +54,20 @@ while True:
   if event.startswith('-t'): 
     comm.update()
     window['robot_mode'].update(comm.state.robot_mode)
+    window['runtime_state'].update(comm.state.runtime_state)
+  # update integer output widget
+    for k in elements:
+      try:
+        val=eval('comm.state.output_int_register_'+k)
+      except Exception as e:
+        break
+      if '-o'+k in window.AllKeysDict:
+        window['-o'+k].update(val)
+  # update bit output widget
+    val=comm.state.output_bit_registers0_to_31
+    for n,k in enumerate(elements):
+      if '-y'+k in window.AllKeysDict:
+        window['-y'+k].update(background_color='yellow' if val&(1<<n) else 'black')
     continue
 
   if event.startswith('-i'):
