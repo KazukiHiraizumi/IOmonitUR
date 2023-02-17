@@ -7,11 +7,11 @@
 
 import PySimpleGUI as sg
 
-layout=None
+contents=None
 
 def build(ids):
-  global layout
-  layout=[[
+  global contents
+  contents=[[
     sg.Text('Adds',size=(4,1)),
     sg.Text('Input',size=(10,1)),
     sg.Text('Output',size=(10,1)),
@@ -27,10 +27,10 @@ def build(ids):
       sg.Checkbox('',key='-x'+k),
       sg.Text('',key='-y'+k,size=(2,1),relief=sg.RELIEF_RIDGE,border_width=2,background_color='black')
     ]
-    layout.append(ln)
+    contents.append(ln)
 
   # Put status widgets
-  layout.append([sg.Text('Robot mode',size=(12,1)),sg.Input(key='robot_mode',size=(10,1),readonly=True)])
-  layout.append([sg.Text('Runtime state',size=(12,1)),sg.Input(key='runtime_state',size=(10,1),readonly=True)])
-  return layout
+  contents.append([sg.Text('Robot mode',size=(12,1)),sg.Input(key='robot_mode',size=(10,1),readonly=True)])
+  contents.append([sg.Text('Runtime state',size=(12,1)),sg.Input(key='runtime_state',size=(10,1),readonly=True)])
+  return contents
 

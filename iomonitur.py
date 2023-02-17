@@ -13,8 +13,9 @@ elements=[
   '30','31','32','33','34','35','36','37','38','39',
   '40','41','42','43','44','45','46','47'
 ]
-layout.build(elements)
-window = sg.Window('I/O Monitor for UR', layout.layout,finalize=True)
+contents=layout.build(elements)
+contents.append([sg.Button('Sequence1'),sg.Button('Sequence2'),sg.Button('Sequence3')])
+window = sg.Window('I/O Monitor for UR', contents,finalize=True)
 
 for k in elements:
   if '-i'+k in window.AllKeysDict:
@@ -23,7 +24,7 @@ for k in elements:
   if '-x'+k in window.AllKeysDict:
     window['-x'+k].bind('<ButtonPress-1>', '')   #attach event to the widget whose key is '-x*'
 
-###Start RTDE comminucation################
+###RTDE connect################
 import comm
 IPADDS="127.0.0.1"
 PORT=30004
@@ -33,13 +34,39 @@ if not comm.connect(IPADDS,PORT,RECIPE):
   print("comm connect falied")
   sys.exit()
 
-#Init inregs(input registers)
+###Init Registers##############
+def setIntReg(adds,val):
+  k=str(adds)
+  v=str(val)
+  exec('comm.inregs.input_int_register_'+k+'='+v)   #set int register
+  window['-i'+k].update(v)   #and its corresponding widget
+def getIntReg(adds):
+  return eval('comm.state.output_int_register_'+str(adds))
+def setBitReg(adds,val):
+  if val:
+    v=comm.inregs.input_bit_registers0_to_31 | (1<<int(adds))
+  else:
+    v=comm.inregs.input_bit_registers0_to_31 & ~(1<<int(adds))
+  comm.inregs.input_bit_registers0_to_31=v
+  window['-x'+str(adds)].update(value=val)
+def getBitReg(adds):
+  return bool(comm.state.output_bit_registers0_to_31 & (1<<int(adds)))
+
 for k in elements:
   if '-i'+k in window.AllKeysDict:
-    exec('comm.inregs.input_int_register_'+k+'=0')   #init int register
-    window['-i'+k].update(eval('comm.inregs.input_int_register_'+k))   #ant its corresponding widget
+    setIntReg(k,0)
 comm.inregs.input_bit_registers0_to_31 = 0
 
+###Init Sequence##############
+import threading
+def do_sequence(n):
+  print('Do sequence',n)
+  with open('sequence_1.py', 'r') as f:
+    code=f.read()
+    thread=threading.Thread(target=lambda : exec(code))
+    thread.start()
+
+###Start Event Loop##############
 if not comm.start():
   print("comm start falied")
   sys.exit()
@@ -81,7 +108,12 @@ while True:
       val=comm.inregs.input_bit_registers0_to_31 & ~(1<<int(event[2:]))
     comm.inregs.input_bit_registers0_to_31=val
 
+  if event.startswith('Seq'):
+    do_sequence(event[8:])
+
 comm.pause()
 comm.disconnect()
 window.close()
+
+
 
