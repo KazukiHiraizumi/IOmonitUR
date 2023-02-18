@@ -34,11 +34,13 @@ def connect(host,port,xml):
     return True
 
 def start():   # start data synchronization
+  global state
   if not con.send_start():
     print('send_start...failed')
     return False
   else:
-    return True
+    state = con.receive()
+    return False if state is None else True
 
 def update():
   global state
