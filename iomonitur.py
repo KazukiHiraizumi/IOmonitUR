@@ -61,8 +61,13 @@ def setInBit(adds,val):
     raise KeyError('Key error at',wkey)
 
 def getInBit(adds):
-  return bool(comm.state.input_bit_registers0_to_31 & (1<<int(adds)))  
+  return bool(comm.state.input_bit_registers0_to_31 & (1<<int(adds)))
+getOutBitRaiser=False
 def getOutBit(adds):
+  global getOutBitRaiser
+  if getOutBitRaiser:
+    getOutBitRaiser=False
+    raise SystemExit('System Exit in "getOutBit"')
   return bool(comm.state.output_bit_registers0_to_31 & (1<<int(adds)))
 
 ###Define Sequence manager##############
@@ -81,10 +86,11 @@ def do_sequence(n):
     thread=threading.Thread(target=lambda : exec(code))
     thread.start()
 def stop_sequence():
-  global thread
+  global thread,getOutBitRaiser
   if thread is None: return
   if thread.is_alive():
-    print('Sorry, no way to kill thread')
+    print('Stop only has an effect in "getOutBit" method')
+    getOutBitRaiser=True
 
 ###Start comm##############
 if not comm.start():
@@ -163,4 +169,6 @@ while True:
 comm.pause()
 comm.disconnect()
 window.close()
+if thread.is_alive():
+  getOutBitRaiser=True
 
