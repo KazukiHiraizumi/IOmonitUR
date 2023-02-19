@@ -15,8 +15,8 @@ indices=[
 ]
 contents=layout.build(indices)
 seq_column=[
-  [sg.Button('Sequence1'),sg.Button('Sequence2'),sg.Button('Sequence3')],
-  [sg.Button('Stop')]
+  [sg.Button('Sequence1',key='-s1'),sg.Button('Sequence2',key='-s2'),sg.Button('Sequence3',key='-s3')],
+  [sg.Button('Stop',key='-s0')]
 ]
 contents.append([sg.Column(seq_column,element_justification='center')])
 window = sg.Window('I/O Monitor for UR', contents,finalize=True)
@@ -62,35 +62,35 @@ def setInBit(adds,val):
 
 def getInBit(adds):
   return bool(comm.state.input_bit_registers0_to_31 & (1<<int(adds)))
-getOutBitRaiser=False
+sysExitRaiser=False
 def getOutBit(adds):
-  global getOutBitRaiser
-  if getOutBitRaiser:
-    getOutBitRaiser=False
+  global sysExitRaiser
+  if sysExitRaiser:
+    sysExitRaiser=False
     raise SystemExit('System Exit in "getOutBit"')
   return bool(comm.state.output_bit_registers0_to_31 & (1<<int(adds)))
 
 ###Define Sequence manager##############
 import threading
-thread=None
-def do_sequence(n):
-  global thread
-  if thread is not None:
-    if thread.is_alive():
+sequence=None
+def start_sequence(n):
+  global sequence
+  if sequence is not None:
+    if sequence.is_alive():
       print('Thread busy(running)')
       return
-  print('Do sequence',n)
-  with open('sequence_1.py', 'r') as f:
+  print('Start sequence',n)
+  with open('sequence_'+str(n)+'.py', 'r') as f:
     code=f.read()
     f.close()
-    thread=threading.Thread(target=lambda : exec(code))
-    thread.start()
+    sequence=threading.Thread(target=lambda : exec(code))
+    sequence.start()
 def stop_sequence():
-  global thread,getOutBitRaiser
-  if thread is None: return
-  if thread.is_alive():
+  global sequence,sysExitRaiser
+  if sequence is None: return
+  if sequence.is_alive():
     print('Stop only has an effect in "getOutBit" method')
-    getOutBitRaiser=True
+    sysExitRaiser=True
 
 ###Start comm##############
 if not comm.start():
@@ -139,10 +139,13 @@ while True:
       if '-y'+k in window.AllKeysDict:
         window['-y'+k].update(background_color='yellow' if val&(1<<n) else 'black')
   # update sequence executer
-    if thread is None:
-      window['Stop'].update(button_color='black')
+    if sequence is None:
+      window['-s0'].update(button_color='black')
+    elif sequence.is_alive():
+      window['-s0'].update(button_color='red')
     else:
-      window['Stop'].update(button_color='red' if thread.is_alive() else 'black')
+      window['-s0'].update(button_color='black')
+      sysExitRaiser=False
     continue
 
   if event.startswith('-i'):
@@ -158,17 +161,16 @@ while True:
     comm.inregs.input_bit_registers0_to_31=val
     continue
 
-  if event.startswith('Seq'):
-    do_sequence(event[8:])
+  if event.startswith('-s'):
+    n=int(event[2:])
+    if n==0:
+      stop_sequence()
+    else:
+      start_sequence(n)
     continue
 
-  if event.startswith('Stop'):
-    stop_sequence()
-    continue
-
+stop_sequence()
 comm.pause()
 comm.disconnect()
 window.close()
-if thread.is_alive():
-  getOutBitRaiser=True
 

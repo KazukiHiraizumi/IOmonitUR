@@ -1,4 +1,4 @@
-# Home
+# Manual
 
 import time
 import sys
@@ -10,12 +10,14 @@ FINISH=5
 PRGN=0
 ENDN=1
 
-print('Start 1001')
-setInReg(PRGN,1001)
+print('Start 3100')
+setInReg(PRGN,3100)
 
 time.sleep(0.1)
 setInBit(LAUNCH,True)
 while not getOutBit(LAUNCH):
   time.sleep(0.1)
 setInBit(LAUNCH,False)
+
+print('Manual mode')
 
