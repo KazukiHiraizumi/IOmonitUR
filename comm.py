@@ -10,11 +10,11 @@ inregs=None
 con=None
 state=None
 
-def connect(host,port,xml):
+def connect(host,port,xml,uplink=False):
   global con,inregs
   conf = rtde_config.ConfigFile(xml)
   state_names, state_types = conf.get_recipe("state")
-  inregs_names, inregs_types = conf.get_recipe("input")
+  if uplink: inregs_names, inregs_types = conf.get_recipe("input")
 
   try:
     con = rtde.RTDE(host,port)
@@ -25,7 +25,7 @@ def connect(host,port,xml):
     print("get version...pass")
 
     con.send_output_setup(state_names, state_types)
-    inregs = con.send_input_setup(inregs_names, inregs_types)
+    if uplink: inregs = con.send_input_setup(inregs_names, inregs_types)
     print("setup...pass")
   except Exception as e:
     print(e)
@@ -33,21 +33,21 @@ def connect(host,port,xml):
   else:
     return True
 
+def receive():
+  global state
+  state = con.receive()
+  return False if state is None else True
+
 def start():   # start data synchronization
   global state
   if not con.send_start():
     print('send_start...failed')
     return False
   else:
-    state = con.receive()
-    return False if state is None else True
+    return receive()
 
-def update():
-  global state
-  state = con.receive()
-  if state is None:
-    return None
-  con.send(inregs)
+def send():
+  if inregs is not None: con.send(inregs)
 
 def pause():
   con.send_pause()

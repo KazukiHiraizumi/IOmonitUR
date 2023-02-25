@@ -4,8 +4,10 @@ import PySimpleGUI as sg
 import sys
 sys.path.append('.')
 
-### Outlooking #####################
+###Outlooking #####################
 import layout_simple as layout
+#import layout_readonly as layout
+
 indices=[
   '0','1','2','3','4','5','6','7','8','9',
   '10','11','12','13','14','15','16','17','18','19',
@@ -14,52 +16,55 @@ indices=[
   '40','41','42','43','44','45','46','47'
 ]
 contents=layout.build(indices)
-seq_column=[
-  [sg.Button('Sequence1',key='-s1'),sg.Button('Sequence2',key='-s2'),sg.Button('Sequence3',key='-s3')],
-  [sg.Button('Stop',key='-s0')]
-]
-contents.append([sg.Column(seq_column,element_justification='center')])
-window = sg.Window('I/O Monitor for UR', contents,finalize=True)
 
+window=sg.Window('I/O Monitor for UR', contents,finalize=True)
+
+uplink=False
 for k in indices:
-  if '-i'+k in window.AllKeysDict:
-    window['-i'+k].bind('<Return>', '')   #attach event to the widget whose key begins with '-i*'
+  if '-v'+k in window.AllKeysDict:
+    window['-v'+k].bind('<Return>', '')   #attach event to the widget whose key begins with '-v*'
+    uplink=True
 for k in indices:
-  if '-x'+k in window.AllKeysDict:
-    window['-x'+k].bind('<ButtonPress-1>', '')   #attach event to the widget whose key begins with '-x*'
+  if '-u'+k in window.AllKeysDict:
+#    window['-u'+k].bind('<ButtonPress-1>', '')   #attach event to the widget whose key begins with '-u*'
+    uplink=True
+
+#while True:
+#  event, values = window.read()
+#  sys.exit()
 
 ###RTDE connect################
 import comm
 IPADDS="127.0.0.1"
+#IPADDS="192.168.2.100"
 PORT=30004
 RECIPE="minimum.xml"
 
-if not comm.connect(IPADDS,PORT,RECIPE):
+if not comm.connect(IPADDS,PORT,RECIPE,uplink=uplink):
   print("comm connect falied")
   sys.exit()
 
 ###Define R/W methods##############
+sendQueue=False
 def setInReg(adds,val):
+  global sendQueue
   k=str(adds)
   v=str(val)
   exec('comm.inregs.input_int_register_'+k+'='+v)   #set int register
-  window['-i'+k].update(value=v)                    #and its corresponding widget
+  sendQueue=True
 def getInReg(adds):
   return eval('comm.state.input_int_register_'+str(adds))
 def getOutReg(adds):
   return eval('comm.state.output_int_register_'+str(adds))
 def setInBit(adds,val):
+  global sendQueue
+  print('setInBit',adds,val)
   if val:
     v=comm.inregs.input_bit_registers0_to_31 | (1<<int(adds))
   else:
     v=comm.inregs.input_bit_registers0_to_31 & ~(1<<int(adds))
   comm.inregs.input_bit_registers0_to_31=v
-  wkey='-x'+str(adds)
-  if wkey in window.AllKeysDict:
-    window[wkey].update(value=val)
-  else:
-    raise KeyError('Key error at',wkey)
-
+  sendQueue=True
 def getInBit(adds):
   return bool(comm.state.input_bit_registers0_to_31 & (1<<int(adds)))
 sysExitRaiser=False
@@ -80,11 +85,12 @@ def start_sequence(n):
       print('Thread busy(running)')
       return
   print('Start sequence',n)
-  with open('sequence_'+str(n)+'.py', 'r') as f:
-    code=f.read()
-    f.close()
-    sequence=threading.Thread(target=lambda : exec(code))
+  try:
+    sequence=threading.Thread(target=lambda : exec(open('sequence_'+str(n)+'.py').read(), globals()))
     sequence.start()
+  except Exception as e:
+    sequence=None
+    print(e)
 def stop_sequence():
   global sequence,sysExitRaiser
   if sequence is None: return
@@ -100,18 +106,16 @@ if not comm.start():
 ###Init Register##############
 for k in indices:
   try:
-    setInReg(k,getInReg(k))
+    v=getInReg(k)
+    setInReg(k,v)
+    window['-v'+k].update(value=v)
   except Exception as e:
-    print('error in reg',k,e)
+    print('warn init inregs',k,e)
     break
-
-comm.inregs.input_bit_registers0_to_31=0
-for k in indices:
-  try:
-    setInBit(k,getInBit(k))
-  except Exception as e:
-    print('error in bit',k,e)
-    break
+try:
+  comm.inregs.input_bit_registers0_to_31=comm.state.input_bit_registers0_to_31
+except Exception as e:
+  print('warn init inregs',k,e)
 
 ###Start Event Loop##############
 while True:
@@ -122,7 +126,9 @@ while True:
     break
 
   if event.startswith('-t'): 
-    comm.update()
+    if not comm.receive():
+      print('receive failed')
+      break
     window['robot_mode'].update(comm.state.robot_mode)
     window['runtime_state'].update(comm.state.runtime_state)
   # update integer output widget
@@ -133,41 +139,50 @@ while True:
         break
       if '-o'+k in window.AllKeysDict:
         window['-o'+k].update(value=val)
+  # update integer input widget
+    for k in indices:
+      try:
+        val=eval('comm.state.input_int_register_'+k)
+      except Exception as e:
+        break
+      if '-i'+k in window.AllKeysDict:
+        window['-i'+k].update(value=val)
   # update bit output widget
     val=comm.state.output_bit_registers0_to_31
     for n,k in enumerate(indices):
       if '-y'+k in window.AllKeysDict:
         window['-y'+k].update(background_color='yellow' if val&(1<<n) else 'black')
+  # update bit input widget
+    val=comm.state.input_bit_registers0_to_31
+    for n,k in enumerate(indices):
+      if '-x'+k in window.AllKeysDict:
+        window['-x'+k].update(background_color='yellow' if val&(1<<n) else 'black')
   # update sequence executer
     if sequence is None:
-      window['-s0'].update(button_color='black')
+      if '-s0' in window.AllKeysDict: window['-s0'].update(button_color='black')
     elif sequence.is_alive():
       window['-s0'].update(button_color='red')
     else:
       window['-s0'].update(button_color='black')
       sysExitRaiser=False
-    continue
-
-  if event.startswith('-i'):
+  elif event.startswith('-v'):
     print('reg',event[:4],values[event[:4]])
     exec('comm.inregs.input_int_register_'+event[2:]+'='+values[event[:4]])
-    continue
-  elif event.startswith('-x'):
-    print('bit',event[:4],values[event[:4]])
-    if values[event[:4]]:
-      val=comm.inregs.input_bit_registers0_to_31 | (1<<int(event[2:]))
-    else:
-      val=comm.inregs.input_bit_registers0_to_31 & ~(1<<int(event[2:]))
-    comm.inregs.input_bit_registers0_to_31=val
-    continue
-
-  if event.startswith('-s'):
+    sendQueue=True
+  elif event.startswith('-u'):
+    print('bit',event[:4])
+    comm.inregs.input_bit_registers0_to_31=comm.state.input_bit_registers0_to_31^(1<<int(event[2:]))
+    sendQueue=True
+  elif event.startswith('-s'):
     n=int(event[2:])
     if n==0:
       stop_sequence()
     else:
       start_sequence(n)
-    continue
+
+  if sendQueue:
+    comm.send()
+    sendQueue=False
 
 stop_sequence()
 comm.pause()
